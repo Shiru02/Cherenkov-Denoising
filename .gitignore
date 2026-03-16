@@ -5,3 +5,4 @@ __pycache__/
 Acc_image/
 experiments/
 noisy_patches/
+model_checkpoints/
