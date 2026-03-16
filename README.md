@@ -20,7 +20,6 @@ Due to size constraints and privacy, the actual dataset (`Acc_image`, `noisy_pat
 To run this code locally, you will need to generate or provide your own image datasets and place them in the appropriate root folders as referenced in the scripts.
 
 ## How to Run
-*(Add your specific instructions here. For example:)*
 1. Ensure change the path to your image data folder.
 2. Run data generation: `python noise_data_generation.py`
 3. Train a model: `python Unet_denoise.py`
