@@ -1,0 +1,7 @@
+# Ignore Python cache folder
+__pycache__/
+
+# Ignore specific data and experiment folders
+Acc_image/
+experiments/
+noisy_patches/
