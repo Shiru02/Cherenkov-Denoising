@@ -291,6 +291,7 @@ class PaletteUNet(nn.Module):
         self.merge1 = ConvBlock(ch*2, ch)
         # concat(d3, p2): (ch) + (ch*2) = 3*ch -> project to 4*ch before wavelet decode.
         self.merge2 = ConvBlock(ch*3, ch*4)
+        self.merge3 = ConvBlock(ch*4, ch*4)
         self.Attention_Block4 = nn.Sequential(
             ConvBlock(ch*8, ch*8),
             AttentionBlock(ch*8),
@@ -356,9 +357,10 @@ class PaletteUNet(nn.Module):
         p4 = self.enc4(e3)
 
         d4 = self.Attention_Block4(p4)
-        d4 = self.Wavelet_Decoder4(p4)
+        d4 = self.Wavelet_Decoder4(d4)
         d4 = d4 + self.cond_proj_4(cond)[:, :, None, None]
         d3 = torch.concatenate([d4, p3], dim=1)
+        d3 = self.merge3(d3)
         d3 = self.Wavelet_Decoder3(d3)
         d3 = d3 + self.cond_proj_3(cond)[:, :, None, None]
         d2 = torch.concatenate([d3, p2], dim=1)
@@ -366,6 +368,7 @@ class PaletteUNet(nn.Module):
         d2 = self.Wavelet_Decoder2(d2)
         d2 = d2 + self.cond_proj_2(cond)[:, :, None, None]
         d1 = torch.concatenate([d2, p1], dim=1)
+        d1 = self.merge1(d1)
 
         # ---- res branch ----
         res_part1 = self.S1(d1)
@@ -534,10 +537,21 @@ class PatchDataset(Dataset):
         min_val, max_val = clean_r_np.min(), clean_r_np.max()
         clean_r = ((clean_r_np - min_val) / (max_val - min_val))
         clean = np.array(clean_r).astype(np.float32)
+        import matplotlib.pyplot as plt
+
+        # Save only the clean image for debugging
+        import matplotlib.pyplot as plt
+        plt.imshow(clean, cmap='gray')
+        plt.axis('off')
+        save_path = f"debug_clean_patch_{index}.png"
+        plt.savefig(save_path, bbox_inches='tight', dpi=150)
+        plt.close()
+        print(f"Saved clean patch to {save_path}")
         clean = clean[rand_h:rand_h+136, rand_w:rand_w+136]
 
         noise_r = torch.from_numpy(noise_r.astype(np.float32)).contiguous().unsqueeze(0)
         clean = torch.from_numpy(clean.astype(np.float32)).contiguous().unsqueeze(0)
+        
 
         return {'noisy': noise_r, 'clean': clean,
                 'noise_level': noise_level, 'level_idx': noise_index}
@@ -689,7 +703,7 @@ class TrainingConfig:
         self.learning_rate = 1e-4
         self.weight_decay = 1e-4
         self.train_val_split = 0.8
-        self.preload = True
+        self.preload = False
 
         self.warmup_epochs = 10
         self.min_lr_factor = 0.1 
